@@ -329,13 +329,22 @@ a { color: inherit; }
   // Анонимная статистика: только случайный номер прохождения, эпоха и выбранные ответы.
   var LOG_URL = 'https://docs.google.com/forms/d/e/1FAIpQLSfbsfdlW-RW233VzFdLQTw5pD1lFySyblzjv7qI8CVC5fpAwQ/formResponse';
   var playId = '', live = false, ctaSent = false, finSent = false;
+  // Откуда пришёл человек: метки utm_source / utm_medium / utm_campaign из адреса игры.
+  var SRC = 'без метки', SRC_TAG = '';
+  try {
+    var qs = location.search.replace(/^\?/, '').split('&'), u = {};
+    qs.forEach(function (kv) { var i = kv.indexOf('='); if (i > 0) u[kv.slice(0, i)] = decodeURIComponent(kv.slice(i + 1).replace(/\+/g, ' ')).trim().slice(0, 60); });
+    var parts = [u.utm_source, u.utm_medium, u.utm_campaign].filter(function (x) { return x; });
+    if (parts.length) { SRC = parts.join(' / '); SRC_TAG = u.utm_source || parts[0]; }
+  } catch (e) {}
   function logEvent(ev, era, ans) {
     if (!live) return;
     try {
       var b = 'entry.2102645551=' + encodeURIComponent(ev) +
         '&entry.2102711074=' + encodeURIComponent(playId) +
         '&entry.1058174633=' + encodeURIComponent(era || '') +
-        '&entry.605792720=' + encodeURIComponent(ans || '');
+        '&entry.605792720=' + encodeURIComponent(ans || '') +
+        '&entry.918931697=' + encodeURIComponent(SRC);
       if (window.fetch) {
         fetch(LOG_URL, {method: 'POST', mode: 'no-cors', keepalive: true, headers: {'Content-Type': 'application/x-www-form-urlencoded'}, body: b}).catch(function () {});
       } else {
@@ -615,7 +624,7 @@ a { color: inherit; }
   }
 
   // ---------- Кнопки ----------
-  $('cta').setAttribute('href', REG_URL);
+  $('cta').setAttribute('href', REG_URL + (SRC_TAG ? '&utm_content=' + encodeURIComponent(SRC_TAG) : ''));
   $('cta').addEventListener('click', function () { if (live && !ctaSent) { ctaSent = true; logEvent('Нажал кнопку регистрации'); } });
   $('go').addEventListener('click', function () {
     stopLoop(); answers = []; qi = 0;
